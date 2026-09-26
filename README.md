@@ -18,7 +18,8 @@
 
 作成した旅行と、保存したスポットリストをそれぞれ一覧できる。旅行ごとの日程やメンバー数、スポットリストごとの保存件数がひと目で分かる。
 
-<img src="docs/screenshots/trips-list.jpg" width="480" alt="旅行一覧画面">　<img src="docs/screenshots/spots-list.jpg" width="480" alt="スポット一覧画面">
+<img src="docs/screenshots/trips-list.jpg" width="600" alt="旅行一覧画面">
+<img src="docs/screenshots/spots-list.jpg" width="600" alt="スポット一覧画面">
 
 ### スポット検索・保存
 
@@ -36,13 +37,13 @@ Google検索にヒットしない場所でも、住所を入力（または地�
 
 日ごとにスポットをドラッグ＆ドロップで並び替えて訪問順を決定。中央のGoogleマップには決めた順番どおりにピンとルート線が表示され、区間ごとの移動手段・所要時間も確認できる。
 
-<img src="docs/screenshots/itinerary-map.jpg" width="900" alt="行程管理・地図表示画面">
+<img src="docs/screenshots/itinerary-map.jpg" width="600" alt="行程管理・地図表示画面">
 
 ### メンバー招待・共同編集
 
 招待リンクを発行してメンバーを招待し、複数人で旅行の行程を編集できる（非同期編集）。
 
-<img src="docs/screenshots/member-invite.jpg" width="480" alt="メンバー招待ダイアログ">
+<img src="docs/screenshots/member-invite.jpg" width="600" alt="メンバー招待ダイアログ">
 
 ## 技術スタック
 
