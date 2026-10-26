@@ -84,10 +84,20 @@ export function SpotListItem({
               id="add-to-trip"
               message="このスポットを旅行の行程に追加できます。追加したい旅行と日付を選んでください。"
             >
-              <AddToTripDialog spotId={spot.id} spotName={spot.name} />
+              <AddToTripDialog
+              spotId={spot.id}
+              spotName={spot.name}
+              spotLat={spot.lat}
+              spotLng={spot.lng}
+            />
             </HintBubble>
           ) : (
-            <AddToTripDialog spotId={spot.id} spotName={spot.name} />
+            <AddToTripDialog
+                spotId={spot.id}
+                spotName={spot.name}
+                spotLat={spot.lat}
+                spotLng={spot.lng}
+              />
           )
         )}
         {!readOnly && (

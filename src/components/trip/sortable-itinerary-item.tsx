@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,9 @@ export function SortableItineraryItem({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id, disabled: readOnly });
+  // The first spot of the day is the departure point: it has a departure time
+  // instead of a stay, so there's no duration to enter or display.
+  const isDeparture = order === 0;
   const routesLib = useMapsLibrary("routes");
 
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -95,8 +99,11 @@ export function SortableItineraryItem({
 
   async function saveSchedule() {
     const durationMinutes = durationDraft.trim() ? Number(durationDraft) : null;
-    const finalDuration =
-      durationMinutes != null && !Number.isNaN(durationMinutes) ? durationMinutes : null;
+    const finalDuration = isDeparture
+      ? null
+      : durationMinutes != null && !Number.isNaN(durationMinutes)
+        ? durationMinutes
+        : null;
     const finalStartTime = startTimeDraft.trim() || null;
     const schedule = { startTime: finalStartTime, durationMinutes: finalDuration };
 
@@ -146,6 +153,7 @@ export function SortableItineraryItem({
   }
 
   function scheduleLabel(): string | null {
+    if (isDeparture) return item.startTime ? `${item.startTime} 出発` : null;
     if (item.startTime && item.durationMinutes != null) {
       const end = addMinutesToTime(item.startTime, item.durationMinutes);
       return `${item.startTime} 〜 ${end}（${formatDuration(item.durationMinutes)}）`;
@@ -184,7 +192,14 @@ export function SortableItineraryItem({
           {order + 1}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[16px] font-medium">{item.spot.name}</p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            {isDeparture && (
+              <Badge className="shrink-0 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                出発
+              </Badge>
+            )}
+            <p className="truncate text-[16px] font-medium">{item.spot.name}</p>
+          </div>
           {!isEditingSchedule && scheduleLabel() && (
             <p className="text-[11px] font-medium text-indigo-700 dark:text-indigo-400">
               {scheduleLabel()}
@@ -278,7 +293,7 @@ export function SortableItineraryItem({
           <div className="ml-[56px] flex gap-2">
             <div>
               <Label htmlFor={`schedule-start-${item.id}`} className="text-xs">
-                開始時刻
+                {isDeparture ? "出発時刻" : "開始時刻"}
               </Label>
               <Input
                 id={`schedule-start-${item.id}`}
@@ -294,22 +309,24 @@ export function SortableItineraryItem({
                 </p>
               )}
             </div>
-            <div>
-              <Label htmlFor={`schedule-duration-${item.id}`} className="text-xs">
-                所要時間（分）
-              </Label>
-              <Input
-                id={`schedule-duration-${item.id}`}
-                type="number"
-                min={0}
-                step={5}
-                value={durationDraft}
-                onChange={(e) => setDurationDraft(e.target.value)}
-                placeholder="例: 60"
-                className="h-8 w-[140px] max-w-full"
-                style={{ width: 140 }}
-              />
-            </div>
+            {!isDeparture && (
+              <div>
+                <Label htmlFor={`schedule-duration-${item.id}`} className="text-xs">
+                  所要時間（分）
+                </Label>
+                <Input
+                  id={`schedule-duration-${item.id}`}
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={durationDraft}
+                  onChange={(e) => setDurationDraft(e.target.value)}
+                  placeholder="例: 60"
+                  className="h-8 w-[140px] max-w-full"
+                  style={{ width: 140 }}
+                />
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-1.5">
             <Button

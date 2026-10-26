@@ -35,6 +35,7 @@ export function ScheduleConfirmDialog({
   travelMode,
   isPending,
   onConfirm,
+  onCancel,
 }: {
   open: boolean;
   previousItem: ItineraryItem | null;
@@ -42,6 +43,12 @@ export function ScheduleConfirmDialog({
   travelMode: TravelMode | null;
   isPending: boolean;
   onConfirm: (startTime: string | null) => void;
+  /**
+   * Only passed by callers that haven't written anything yet. The itinerary
+   * flow omits it on purpose: there the spot already exists by the time this
+   * opens, so backing out would leave it orphaned.
+   */
+  onCancel?: () => void;
 }) {
   const [manualStartTime, setManualStartTime] = useState<string | null>(null);
   const [confirmEarlyOpen, setConfirmEarlyOpen] = useState(false);
@@ -63,6 +70,9 @@ export function ScheduleConfirmDialog({
     setManualStartTime(null);
   }
 
+  // No previous spot means this is the day's first spot: its departure point,
+  // which gets a departure time rather than a stay start time.
+  const isDeparture = previousItem === null;
   const prevStart = previousItem?.startTime ?? null;
   const prevDuration = previousItem?.durationMinutes ?? 0;
   const startTime = manualStartTime ?? suggested ?? "";
@@ -85,9 +95,11 @@ export function ScheduleConfirmDialog({
       <Dialog open={open} onOpenChange={() => {}} disablePointerDismissal>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>滞在開始時刻</DialogTitle>
+            <DialogTitle>{isDeparture ? "出発時刻" : "滞在開始時刻"}</DialogTitle>
             <DialogDescription>
-              {!travelMode
+              {isDeparture
+                ? "最初のスポットはこの日の出発地点です。出発時刻を設定できます。"
+                : !travelMode
                 ? "任意で開始時刻を設定できます。"
                 : travelMinutes != null
                   ? `前のスポットから${travelModeLabel[travelMode]}で約${travelMinutes}分`
@@ -97,7 +109,9 @@ export function ScheduleConfirmDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 py-2">
-            <Label htmlFor="pending-schedule-start">開始時刻（任意）</Label>
+            <Label htmlFor="pending-schedule-start">
+              {isDeparture ? "出発時刻（任意）" : "開始時刻（任意）"}
+            </Label>
             <Input
               id="pending-schedule-start"
               type="time"
@@ -114,6 +128,11 @@ export function ScheduleConfirmDialog({
             )}
           </div>
           <DialogFooter>
+            {onCancel && (
+              <Button variant="ghost" onClick={onCancel} disabled={isPending}>
+                キャンセル
+              </Button>
+            )}
             <Button onClick={handleConfirmClick} disabled={isPending}>
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               追加する

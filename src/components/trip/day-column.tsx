@@ -16,6 +16,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { HintBubble } from "@/components/onboarding/hint-bubble";
+import { withDepartureNormalized } from "@/lib/itinerary-departure";
 import { SortableItineraryItem } from "./sortable-itinerary-item";
 import { TravelConnector } from "./travel-connector";
 import type { ItineraryDay } from "@/lib/types";
@@ -41,6 +42,10 @@ export function DayColumn({
   ) => void;
   onUpdateTravelMode: (itemId: string, travelMode: TravelMode) => void;
 }) {
+  // The first spot of the day is the departure point, so its stay duration
+  // never counts toward the next spot's suggested start time.
+  const items = withDepartureNormalized(day.items);
+
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -50,18 +55,18 @@ export function DayColumn({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = day.items.findIndex((i) => i.id === active.id);
-    const newIndex = day.items.findIndex((i) => i.id === over.id);
+    const oldIndex = items.findIndex((i) => i.id === active.id);
+    const newIndex = items.findIndex((i) => i.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = arrayMove(day.items, oldIndex, newIndex);
+    const reordered = arrayMove(items, oldIndex, newIndex);
     onReorder(reordered.map((i) => i.id));
   }
 
-  if (day.items.length === 0) {
+  if (items.length === 0) {
     return (
       <p className="rounded-md border border-dashed p-4 text-center text-sm text-zinc-500">
-        まだスポットがありません。地図や検索から追加してください。
+        まずは出発地点を登録しましょう。地図や検索から追加できます。
       </p>
     );
   }
@@ -73,14 +78,14 @@ export function DayColumn({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={day.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <HintBubbleIfReorderable enabled={!readOnly && day.items.length > 1}>
+      <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+        <HintBubbleIfReorderable enabled={!readOnly && items.length > 1}>
           <ul className="flex flex-col gap-2">
-            {day.items.map((item, index) => (
+            {items.map((item, index) => (
               <Fragment key={item.id}>
                 {index > 0 && (
                   <TravelConnector
-                    origin={day.items[index - 1].spot}
+                    origin={items[index - 1].spot}
                     destination={item.spot}
                     travelMode={item.travelMode}
                     onChangeMode={(mode) => onUpdateTravelMode(item.id, mode)}
@@ -90,8 +95,8 @@ export function DayColumn({
                 <SortableItineraryItem
                   item={item}
                   order={index}
-                  previousItem={index > 0 ? day.items[index - 1] : null}
-                  nextItem={index < day.items.length - 1 ? day.items[index + 1] : null}
+                  previousItem={index > 0 ? items[index - 1] : null}
+                  nextItem={index < items.length - 1 ? items[index + 1] : null}
                   readOnly={readOnly}
                   onRemove={() => onRemoveItem(item.id)}
                   onUpdateNotes={(notes) => onUpdateSpotNotes(item.spotId, notes)}

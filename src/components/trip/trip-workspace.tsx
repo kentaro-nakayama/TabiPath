@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, extractErrorMessage } from "@/lib/utils";
+import { withDepartureNormalized } from "@/lib/itinerary-departure";
 import type { TravelMode } from "@/lib/travel-mode";
 import { CustomSpotDialog, type AddressSpotSelection } from "./custom-spot-dialog";
 import { DayColumn } from "./day-column";
@@ -129,8 +130,15 @@ export function TripWorkspace({
 
   const readOnly = data.myRole === "viewer";
   const selectedDay = data.days.find((d) => d.id === selectedDayId) ?? data.days[0] ?? null;
-  const hasPreviousItem = (selectedDay?.items.length ?? 0) > 0;
-  const previousItem = selectedDay?.items[selectedDay.items.length - 1] ?? null;
+  // The day's first spot is its departure point, so it never contributes a
+  // stay duration to the next spot's suggested start time.
+  // Memoized so `pins` below keeps a stable identity across renders.
+  const selectedDayItems = useMemo(
+    () => withDepartureNormalized(selectedDay?.items ?? []),
+    [selectedDay?.items],
+  );
+  const hasPreviousItem = selectedDayItems.length > 0;
+  const previousItem = selectedDayItems[selectedDayItems.length - 1] ?? null;
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey });
@@ -313,18 +321,13 @@ export function TripWorkspace({
     });
     setPendingPlace(null);
     setPendingPlaceNotes("");
-    if (hasPreviousItem) {
-      setPendingSchedule({
-        dayId: selectedDay.id,
-        spotId: spot.id,
-        spotLat: spot.lat,
-        spotLng: spot.lng,
-        travelMode: pendingPlaceTravelMode,
-      });
-    } else {
-      await addItem.mutateAsync({ dayId: selectedDay.id, spotId: spot.id, travelMode: null });
-      toast.success("行程に追加しました");
-    }
+    setPendingSchedule({
+      dayId: selectedDay.id,
+      spotId: spot.id,
+      spotLat: spot.lat,
+      spotLng: spot.lng,
+      travelMode: hasPreviousItem ? pendingPlaceTravelMode : null,
+    });
   }
 
   async function handleConfirmCustomSpot() {
@@ -340,18 +343,13 @@ export function TripWorkspace({
     setPendingName("");
     setPendingCustomNotes("");
     setClickToAdd(false);
-    if (hasPreviousItem) {
-      setPendingSchedule({
-        dayId: selectedDay.id,
-        spotId: spot.id,
-        spotLat: spot.lat,
-        spotLng: spot.lng,
-        travelMode: pendingCustomTravelMode,
-      });
-    } else {
-      await addItem.mutateAsync({ dayId: selectedDay.id, spotId: spot.id, travelMode: null });
-      toast.success("行程に追加しました");
-    }
+    setPendingSchedule({
+      dayId: selectedDay.id,
+      spotId: spot.id,
+      spotLat: spot.lat,
+      spotLng: spot.lng,
+      travelMode: hasPreviousItem ? pendingCustomTravelMode : null,
+    });
   }
 
   async function handleAddressSelect(input: AddressSpotSelection) {
@@ -360,18 +358,13 @@ export function TripWorkspace({
       return;
     }
     const spot = await createSpot.mutateAsync(input);
-    if (hasPreviousItem) {
-      setPendingSchedule({
-        dayId: selectedDay.id,
-        spotId: spot.id,
-        spotLat: spot.lat,
-        spotLng: spot.lng,
-        travelMode: input.travelMode ?? null,
-      });
-    } else {
-      await addItem.mutateAsync({ dayId: selectedDay.id, spotId: spot.id, travelMode: null });
-      toast.success("行程に追加しました");
-    }
+    setPendingSchedule({
+      dayId: selectedDay.id,
+      spotId: spot.id,
+      spotLat: spot.lat,
+      spotLng: spot.lng,
+      travelMode: hasPreviousItem ? (input.travelMode ?? null) : null,
+    });
   }
 
   async function handleConfirmSchedule(startTime: string | null) {
@@ -388,14 +381,14 @@ export function TripWorkspace({
 
   const pins: MapPinType[] = useMemo(
     () =>
-      (selectedDay?.items ?? []).map((item, index) => ({
+      selectedDayItems.map((item, index) => ({
         id: item.id,
         order: index,
         lat: item.spot.lat,
         lng: item.spot.lng,
         name: item.spot.name,
       })),
-    [selectedDay],
+    [selectedDayItems],
   );
 
   const content = (

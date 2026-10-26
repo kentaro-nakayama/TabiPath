@@ -9,6 +9,12 @@ import { getSpotListRole, getTripRole, hasAtLeastRole } from "@/lib/access";
 const addToTripSchema = z.object({
   tripId: z.string().uuid(),
   itineraryDayId: z.string().uuid(),
+  travelMode: z.enum(["walking", "driving", "transit", "bicycling"]).nullable().optional(),
+  startTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "時刻の形式が正しくありません")
+    .nullable()
+    .optional(),
 });
 
 export async function POST(
@@ -23,7 +29,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { tripId, itineraryDayId } = parsed.data;
+  const { tripId, itineraryDayId, travelMode, startTime } = parsed.data;
 
   const role = await getTripRole(tripId, userId);
   if (!hasAtLeastRole(role, "editor")) {
@@ -85,6 +91,8 @@ export async function POST(
       itineraryDayId,
       spotId: tripSpot.id,
       order: (last?.order ?? -1) + 1,
+      travelMode: travelMode ?? null,
+      startTime: startTime ?? null,
     })
     .returning();
 
