@@ -6,8 +6,10 @@ import { ArrowDown, Bike, Car, Footprints, TrainFront } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   TRAVEL_MODES,
+  fetchTravelDuration,
+  travelDurationIssueLabel,
   travelModeLabel,
-  travelModeToGoogle,
+  type TravelDurationResult,
   type TravelMode,
 } from "@/lib/travel-mode";
 
@@ -32,8 +34,8 @@ export function TravelConnector({
   readOnly: boolean;
 }) {
   const routesLib = useMapsLibrary("routes");
-  const [durationText, setDurationText] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  // null while the lookup for the current leg is still in flight.
+  const [result, setResult] = useState<TravelDurationResult | null>(null);
 
   // Reset the stale result during render (not in the effect below) whenever
   // the leg being described changes, so we never show a previous leg's
@@ -44,37 +46,15 @@ export function TravelConnector({
   const [trackedLegKey, setTrackedLegKey] = useState(legKey);
   if (legKey !== trackedLegKey) {
     setTrackedLegKey(legKey);
-    setDurationText(null);
-    setFailed(false);
+    setResult(null);
   }
 
   useEffect(() => {
     if (!routesLib || !travelMode) return;
     let cancelled = false;
-    const service = new routesLib.DistanceMatrixService();
-    service
-      .getDistanceMatrix({
-        origins: [origin],
-        destinations: [destination],
-        travelMode: travelModeToGoogle[travelMode],
-      })
-      .then((res) => {
-        if (cancelled) return;
-        const element = res.rows[0]?.elements[0];
-        if (element?.status === "OK" && element.duration) {
-          setDurationText(element.duration.text);
-          setFailed(false);
-        } else {
-          setDurationText(null);
-          setFailed(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDurationText(null);
-          setFailed(true);
-        }
-      });
+    fetchTravelDuration(routesLib, origin, destination, travelMode).then((next) => {
+      if (!cancelled) setResult(next);
+    });
     return () => {
       cancelled = true;
     };
@@ -87,11 +67,11 @@ export function TravelConnector({
 
   const statusLabel = !travelMode
     ? "移動手段を選択"
-    : durationText
-      ? `${travelModeLabel[travelMode]}で約${durationText}`
-      : failed
-        ? "所要時間を取得できませんでした"
-        : "計算中...";
+    : !result
+      ? "計算中..."
+      : result.status === "ok"
+        ? `${travelModeLabel[travelMode]}で約${result.text}`
+        : travelDurationIssueLabel(result.status, travelMode, "short");
 
   if (readOnly) {
     const Icon = travelMode ? travelModeIcon[travelMode] : null;

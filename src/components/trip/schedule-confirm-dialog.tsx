@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSuggestedStartTime } from "@/lib/hooks/use-suggested-start-time";
 import { minutesBetween } from "@/lib/itinerary-time";
-import { travelModeLabel, type TravelMode } from "@/lib/travel-mode";
+import { travelDurationIssueLabel, travelModeLabel, type TravelMode } from "@/lib/travel-mode";
 import type { ItineraryItem } from "@/lib/types";
 
 export function ScheduleConfirmDialog({
@@ -54,12 +54,12 @@ export function ScheduleConfirmDialog({
   const [durationDraft, setDurationDraft] = useState("");
   const [confirmEarlyOpen, setConfirmEarlyOpen] = useState(false);
 
-  const { suggested, travelMinutes, isLoading: isTravelTimeLoading } = useSuggestedStartTime(
-    open,
-    previousItem,
-    destination,
-    travelMode,
-  );
+  const {
+    suggested,
+    travelMinutes,
+    isLoading: isTravelTimeLoading,
+    issue: travelTimeIssue,
+  } = useSuggestedStartTime(open, previousItem, destination, travelMode);
 
   // Reset the manually-typed values during render (not in an effect) so a
   // stale draft from a previous spot never leaks into this one.
@@ -116,7 +116,7 @@ export function ScheduleConfirmDialog({
                   ? `前のスポットから${travelModeLabel[travelMode]}で約${travelMinutes}分`
                   : isTravelTimeLoading
                     ? "移動時間を計算中..."
-                    : "所要時間を取得できませんでした"}
+                    : travelDurationIssueLabel(travelTimeIssue ?? "error", travelMode)}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 py-2">

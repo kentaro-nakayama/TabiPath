@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { addMinutesToTime, formatDuration, timeToMinutes } from "@/lib/itinerary-time";
 import { useSuggestedStartTime } from "@/lib/hooks/use-suggested-start-time";
-import { fetchTravelDurationMinutes } from "@/lib/travel-mode";
+import { fetchTravelDuration } from "@/lib/travel-mode";
 import type { ItineraryItem } from "@/lib/types";
 
 export function SortableItineraryItem({
@@ -125,15 +125,15 @@ export function SortableItineraryItem({
     // start time unreachable?
     if (finalStartTime && nextItem?.startTime && nextItem.travelMode && routesLib) {
       setIsCheckingNextSpot(true);
-      const travelMinutes = await fetchTravelDurationMinutes(
+      const travel = await fetchTravelDuration(
         routesLib,
         item.spot,
         nextItem.spot,
         nextItem.travelMode,
       );
       setIsCheckingNextSpot(false);
-      if (travelMinutes != null) {
-        const minFeasible = (finalDuration ?? 0) + travelMinutes;
+      if (travel.status === "ok") {
+        const minFeasible = (finalDuration ?? 0) + travel.minutes;
         // Plain (non-wrapping) subtraction: unlike the forward-only suggestion
         // math, a negative gap here always means the next spot's existing
         // time is no longer reachable, not a legitimate next-day rollover.
