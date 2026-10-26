@@ -42,7 +42,7 @@ export function ScheduleConfirmDialog({
   destination: { lat: number; lng: number } | null;
   travelMode: TravelMode | null;
   isPending: boolean;
-  onConfirm: (startTime: string | null) => void;
+  onConfirm: (schedule: { startTime: string | null; durationMinutes: number | null }) => void;
   /**
    * Only passed by callers that haven't written anything yet. The itinerary
    * flow omits it on purpose: there the spot already exists by the time this
@@ -51,6 +51,7 @@ export function ScheduleConfirmDialog({
   onCancel?: () => void;
 }) {
   const [manualStartTime, setManualStartTime] = useState<string | null>(null);
+  const [durationDraft, setDurationDraft] = useState("");
   const [confirmEarlyOpen, setConfirmEarlyOpen] = useState(false);
 
   const { suggested, travelMinutes, isLoading: isTravelTimeLoading } = useSuggestedStartTime(
@@ -60,7 +61,7 @@ export function ScheduleConfirmDialog({
     travelMode,
   );
 
-  // Reset the manually-typed value during render (not in an effect) so a
+  // Reset the manually-typed values during render (not in an effect) so a
   // stale draft from a previous spot never leaks into this one.
   const openKey =
     open && destination ? `${destination.lat},${destination.lng}:${travelMode ?? ""}` : null;
@@ -68,6 +69,7 @@ export function ScheduleConfirmDialog({
   if (openKey !== trackedOpenKey) {
     setTrackedOpenKey(openKey);
     setManualStartTime(null);
+    setDurationDraft("");
   }
 
   // No previous spot means this is the day's first spot: its departure point,
@@ -77,17 +79,26 @@ export function ScheduleConfirmDialog({
   const prevDuration = previousItem?.durationMinutes ?? 0;
   const startTime = manualStartTime ?? suggested ?? "";
 
+  // A departure point has no stay, so it never carries a duration.
+  const parsedDuration = durationDraft.trim() ? Number(durationDraft) : null;
+  const finalDuration =
+    isDeparture || parsedDuration == null || Number.isNaN(parsedDuration) ? null : parsedDuration;
+
+  function buildSchedule() {
+    return { startTime: startTime.trim() || null, durationMinutes: finalDuration };
+  }
+
   function handleConfirmClick() {
-    const finalTime = startTime.trim() || null;
-    if (finalTime && prevStart != null && travelMinutes != null) {
+    const schedule = buildSchedule();
+    if (schedule.startTime && prevStart != null && travelMinutes != null) {
       const minFeasible = prevDuration + travelMinutes;
-      const actualGap = minutesBetween(prevStart, finalTime);
+      const actualGap = minutesBetween(prevStart, schedule.startTime);
       if (actualGap < minFeasible) {
         setConfirmEarlyOpen(true);
         return;
       }
     }
-    onConfirm(finalTime);
+    onConfirm(schedule);
   }
 
   return (
@@ -95,7 +106,7 @@ export function ScheduleConfirmDialog({
       <Dialog open={open} onOpenChange={() => {}} disablePointerDismissal>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>{isDeparture ? "出発時刻" : "滞在開始時刻"}</DialogTitle>
+            <DialogTitle>{isDeparture ? "出発時刻" : "滞在スケジュール"}</DialogTitle>
             <DialogDescription>
               {isDeparture
                 ? "最初のスポットはこの日の出発地点です。出発時刻を設定できます。"
@@ -109,18 +120,38 @@ export function ScheduleConfirmDialog({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 py-2">
-            <Label htmlFor="pending-schedule-start">
-              {isDeparture ? "出発時刻（任意）" : "開始時刻（任意）"}
-            </Label>
-            <Input
-              id="pending-schedule-start"
-              type="time"
-              value={startTime}
-              onChange={(e) => setManualStartTime(e.target.value)}
-              autoFocus
-              className="w-[140px] max-w-full"
-              style={{ width: 140 }}
-            />
+            <div className="flex gap-2">
+              <div className="grid gap-2">
+                <Label htmlFor="pending-schedule-start">
+                  {isDeparture ? "出発時刻（任意）" : "開始時刻（任意）"}
+                </Label>
+                <Input
+                  id="pending-schedule-start"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setManualStartTime(e.target.value)}
+                  autoFocus
+                  className="w-[140px] max-w-full"
+                  style={{ width: 140 }}
+                />
+              </div>
+              {!isDeparture && (
+                <div className="grid gap-2">
+                  <Label htmlFor="pending-schedule-duration">滞在時間（分）</Label>
+                  <Input
+                    id="pending-schedule-duration"
+                    type="number"
+                    min={0}
+                    step={5}
+                    value={durationDraft}
+                    onChange={(e) => setDurationDraft(e.target.value)}
+                    placeholder="例: 60"
+                    className="w-[140px] max-w-full"
+                    style={{ width: 140 }}
+                  />
+                </div>
+              )}
+            </div>
             {suggested && manualStartTime === null && (
               <p className="text-xs text-zinc-500">
                 前のスポットの滞在終了時刻と移動時間から{suggested}を提案しています
@@ -156,7 +187,7 @@ export function ScheduleConfirmDialog({
             <AlertDialogAction
               onClick={() => {
                 setConfirmEarlyOpen(false);
-                onConfirm(startTime.trim() || null);
+                onConfirm(buildSchedule());
               }}
             >
               このまま追加する

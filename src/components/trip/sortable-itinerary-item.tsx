@@ -312,7 +312,7 @@ export function SortableItineraryItem({
             {!isDeparture && (
               <div>
                 <Label htmlFor={`schedule-duration-${item.id}`} className="text-xs">
-                  所要時間（分）
+                  滞在時間（分）
                 </Label>
                 <Input
                   id={`schedule-duration-${item.id}`}

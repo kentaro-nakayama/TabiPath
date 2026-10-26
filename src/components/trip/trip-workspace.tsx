@@ -150,16 +150,24 @@ export function TripWorkspace({
       spotId,
       travelMode,
       startTime,
+      durationMinutes,
     }: {
       dayId: string;
       spotId: string;
       travelMode?: TravelMode | null;
       startTime?: string | null;
+      durationMinutes?: number | null;
     }) => {
       const res = await fetch(`/api/trips/${tripId}/itinerary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itineraryDayId: dayId, spotId, travelMode, startTime }),
+        body: JSON.stringify({
+          itineraryDayId: dayId,
+          spotId,
+          travelMode,
+          startTime,
+          durationMinutes,
+        }),
       });
       if (!res.ok) throw new Error(await extractErrorMessage(res, "行程への追加に失敗しました"));
       return res.json();
@@ -367,13 +375,16 @@ export function TripWorkspace({
     });
   }
 
-  async function handleConfirmSchedule(startTime: string | null) {
+  async function handleConfirmSchedule(schedule: {
+    startTime: string | null;
+    durationMinutes: number | null;
+  }) {
     if (!pendingSchedule) return;
     await addItem.mutateAsync({
       dayId: pendingSchedule.dayId,
       spotId: pendingSchedule.spotId,
       travelMode: pendingSchedule.travelMode,
-      startTime,
+      ...schedule,
     });
     setPendingSchedule(null);
     toast.success("行程に追加しました");

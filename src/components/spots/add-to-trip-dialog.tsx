@@ -105,7 +105,7 @@ export function AddToTripDialog({
   const isDeparture = previousItem === null;
 
   const addMutation = useMutation({
-    mutationFn: async (startTime: string | null) => {
+    mutationFn: async (schedule: { startTime: string | null; durationMinutes: number | null }) => {
       if (!tripId || !dayId) return;
       const res = await fetch(`/api/spots/${spotId}/add-to-trip`, {
         method: "POST",
@@ -114,7 +114,7 @@ export function AddToTripDialog({
           tripId,
           itineraryDayId: dayId,
           travelMode: isDeparture ? null : travelMode,
-          startTime,
+          ...schedule,
         }),
       });
       if (!res.ok) throw new Error(await extractErrorMessage(res, "行程への追加に失敗しました"));
@@ -241,7 +241,7 @@ export function AddToTripDialog({
         destination={{ lat: spotLat, lng: spotLng }}
         travelMode={isDeparture ? null : travelMode}
         isPending={addMutation.isPending}
-        onConfirm={(startTime) => addMutation.mutate(startTime)}
+        onConfirm={(schedule) => addMutation.mutate(schedule)}
         onCancel={() => {
           setScheduleOpen(false);
           setOpen(true);
