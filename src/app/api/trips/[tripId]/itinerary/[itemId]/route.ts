@@ -49,6 +49,11 @@ export async function PATCH(
   if ("durationMinutes" in parsed.data) updates.durationMinutes = parsed.data.durationMinutes;
   if ("travelMode" in parsed.data) updates.travelMode = parsed.data.travelMode;
 
+  // 更新対象のカラムが無いまま update を投げるとドライバ側でエラーになる
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "更新する項目がありません" }, { status: 400 });
+  }
+
   const [item] = await db
     .update(itineraryItems)
     .set(updates)

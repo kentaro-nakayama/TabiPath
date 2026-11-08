@@ -6,8 +6,9 @@ import { getDb } from "@/db";
 import { spots } from "@/db/schema";
 import { getTripRole, hasAtLeastRole } from "@/lib/access";
 
+// 部分更新: 送られてきたキーのみ更新する（/api/spots/[spotId] と同じ扱い）
 const updateSpotSchema = z.object({
-  notes: z.string().trim().max(2000).nullable(),
+  notes: z.string().trim().max(2000).nullable().optional(),
 });
 
 export async function PATCH(
@@ -30,9 +31,17 @@ export async function PATCH(
 
   const db = getDb();
 
+  const updates: Partial<typeof spots.$inferInsert> = {};
+  if ("notes" in parsed.data) updates.notes = parsed.data.notes || null;
+
+  // 更新対象のカラムが無いまま update を投げるとドライバ側でエラーになる
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "更新する項目がありません" }, { status: 400 });
+  }
+
   const [spot] = await db
     .update(spots)
-    .set({ notes: parsed.data.notes || null })
+    .set(updates)
     .where(and(eq(spots.id, spotId), eq(spots.tripId, tripId)))
     .returning();
 
