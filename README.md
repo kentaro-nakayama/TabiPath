@@ -62,6 +62,40 @@ Google検索にヒットしない場所でも、住所を入力（または地�
 | データ取得/キャッシュ | TanStack Query |
 | ホスティング | Vercel（デプロイ先: [tabipath.app](https://tabipath.app)） |
 
+## アーキテクチャ
+
+詳細レベル別の構成図。図は [`docs/architecture/`](./docs/architecture/) にSVGで置いてあり、クリックすると原寸で開ける。
+
+### レベル1: システム構成
+
+どこで何が動き、どの外部サービスと通信するか。
+
+<img src="docs/architecture/01-system.svg" alt="システム構成図">
+
+### レベル2: 画面とAPIの対応
+
+どの画面がどのコンポーネントを使い、どのAPIを叩き、どのテーブルに届くか。
+
+<img src="docs/architecture/02-routes.svg" alt="画面とAPIの対応図">
+
+### レベル3: データモデル
+
+`src/db/schema.ts` のテーブルと関係。
+
+<img src="docs/architecture/03-data-model.svg" alt="データモデル図">
+
+### レベル4: 旅行行程画面の処理の流れ
+
+スポット追加・並び替え・メモ編集が、関数 → API → DB → 再描画までどう繋がるか。
+
+<img src="docs/architecture/04-trip-flow.svg" alt="旅行行程画面の処理の流れ">
+
+### レベル5: 行きたいところリストの処理の流れ
+
+スポットの保存・メモ編集・旅行への追加・共有の流れ。
+
+<img src="docs/architecture/05-spot-list-flow.svg" alt="行きたいところリストの処理の流れ">
+
 ## セットアップ
 
 ### 前提条件
@@ -120,3 +154,4 @@ src/
 ## ドキュメント
 
 - [CLAUDE.md](./CLAUDE.md): プロジェクト仕様書（データ構造・技術選定の経緯など）
+- [docs/architecture/](./docs/architecture/): 構成図のSVGと、その生成スクリプト
